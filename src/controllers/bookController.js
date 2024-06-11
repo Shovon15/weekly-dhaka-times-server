@@ -185,10 +185,34 @@ const getBooksForClient = async (req, res, next) => {
           book.bookImages.unshift(book.bookHeaderImage);
         }
 
+        // Function to ensure directory exists, if not, create it
+        const ensureDirectoryExistence = (directory) => {
+          if (!fs.existsSync(directory)) {
+            fs.mkdirSync(directory, { recursive: true });
+          }
+        };
+
+        // Function to check if a directory exists
+        const doesDirectoryExist = (directory) => {
+          return (
+            fs.existsSync(directory) && fs.lstatSync(directory).isDirectory()
+          );
+        };
+
+        const pdfFolder = path.join("public", "pdf");
+        const imageFolder = path.join("public", "book-images");
+
+        // Ensure the PDF directory exists
+        ensureDirectoryExistence(pdfFolder);
+
+        // Ensure the image directory exists
+        ensureDirectoryExistence(imageFolder);
+
         // Create a PDF for this book
         const pdfDoc = new PDFDocument();
         const pdfName = `${book.slug}.pdf`;
-        const pdfPath = path.join("public", "pdf", pdfName);
+        // const pdfPath = path.join("public", "pdf", pdfName);
+        const pdfPath = path.join(pdfFolder, pdfName);
         const writeStream = fs.createWriteStream(pdfPath);
         pdfDoc.pipe(writeStream);
 
@@ -196,7 +220,8 @@ const getBooksForClient = async (req, res, next) => {
 
         for (let i = 0; i < bookImagesLength; i++) {
           const image = book.bookImages[i];
-          const imagePath = path.join("public", "book-images", image);
+          // const imagePath = path.join("public", "book-images", image);
+          const imagePath = path.join(imageFolder, image);
           if (fs.existsSync(imagePath)) {
             const { width, height } = pdfDoc.page;
 
@@ -293,39 +318,34 @@ const deleteBook = async (req, res, next) => {
   const { slug } = req.query;
 
   try {
-  
     const book = await findWithSlug(BookModel, slug);
-    console.log(book,"book")
+    console.log(book, "book");
 
-   
-		if (!book) {
-			return errorResponse(res, {
+    if (!book) {
+      return errorResponse(res, {
         statusCode: 400,
         message: `Magazine not found`,
       });
-		}
-
+    }
 
     if (book) {
       try {
         await removeImages(book);
       } catch (error) {
-        console.error('Error removing images:', error);
+        console.error("Error removing images:", error);
       }
     } else {
-      console.log('Book not found');
+      console.log("Book not found");
     }
 
-
-	
     await BookModel.findByIdAndDelete(book._id);
-  
+
     return successResponse(res, {
       statusCode: 200,
       message: `Delete Magazine Successfully`,
-      payload:{
+      payload: {
         book,
-      }
+      },
     });
   } catch (error) {
     next(error);
