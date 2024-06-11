@@ -1,5 +1,6 @@
 const multer = require("multer");
 const fs = require("fs");
+const path = require('path');
 
 // Function to ensure directory exists, if not, create it
 const ensureDirectoryExistence = (directory) => {
@@ -8,15 +9,13 @@ const ensureDirectoryExistence = (directory) => {
   }
 };
 
-// Ensure 'public' directory exists
-ensureDirectoryExistence("public");
+const uploadsDir = path.join(__dirname, 'uploads');
+ensureDirectoryExistence(uploadsDir);
 
 // Multer disk storage configuration
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const destinationFolder = "public/book-images";
-    ensureDirectoryExistence(destinationFolder); // Ensure directory exists
-    cb(null, destinationFolder); // Set the destination folder for the files
+    cb(null, uploadsDir); // Set the destination folder for the files
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + "_" + file.originalname); // Set the filename

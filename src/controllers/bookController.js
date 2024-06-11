@@ -5,6 +5,7 @@ const path = require("path");
 const { successResponse, errorResponse } = require("./responseController");
 const findWithSlug = require("../services/findWithSlug");
 const removeImages = require("../services/removeImages");
+const createPDF = require("../middleware/makePdf");
 
 const addBook = async (req, res, next) => {
   try {
@@ -12,6 +13,7 @@ const addBook = async (req, res, next) => {
     const bookHeaderImage = req.files["bookHeaderImage"]
       ? req.files["bookHeaderImage"][0].filename
       : null;
+
     const bookImages = req.files["bookImages"]
       ? req.files["bookImages"].map((file) => file.filename)
       : null;
@@ -32,6 +34,10 @@ const addBook = async (req, res, next) => {
         message: "At least one Magazin image is required",
       });
     }
+
+        // Add bookHeaderImage at index 0 of bookImages array
+    bookImages.unshift(bookHeaderImage);
+
 
     await BookModel.create({
       bookName,
@@ -138,13 +144,6 @@ const getBooksForClient = async (req, res, next) => {
   const skip = (page - 1) * limit;
 
   try {
-    // const data = await BookModel.find(
-    //     {},
-    //     "bookName bookHeaderImage bookImages slug"
-    // )
-    //     .limit(limit)
-    //     .skip(skip);
-    //     const count = await BookModel.find({}).countDocuments();
 
     const result = await BookModel.aggregate([
       {
@@ -175,78 +174,68 @@ const getBooksForClient = async (req, res, next) => {
       ? result[0].totalCount[0].count
       : 0;
 
+    // const pdfPaths = await Promise.all(
+    //   books.map(async (book) => {
+    //     // Make bookHeaderImage the first element of bookImages
+    //     if (
+    //       Array.isArray(book.bookImages) &&
+    //       typeof book.bookHeaderImage === "string"
+    //     ) {
+    //       book.bookImages.unshift(book.bookHeaderImage);
+    //     }
+
+    //     // Create a PDF for this book
+    //     const pdfDoc = new PDFDocument();
+    //     const pdfName = `${book.slug}.pdf`;
+    //     // const pdfPath = path.join("public", "pdf", pdfName);
+    //     const pdfPath =path.join(__dirname, 'uploads', pdfName);
+    //     // const pdfPath = path.join(pdfFolder, pdfName);
+    //     const writeStream = fs.createWriteStream(pdfPath);
+    //     pdfDoc.pipe(writeStream);
+
+    //     const bookImagesLength = book.bookImages.length;
+
+    //     for (let i = 0; i < bookImagesLength; i++) {
+    //       const image = book.bookImages[i];
+    //       // const imagePath = path.join("public", "book-images", image);
+    //       // const imagePath = path.join(imageFolder, image);
+    //       const imagePath = path.join(__dirname, 'uploads', image);
+    //       if (fs.existsSync(imagePath)) {
+    //         const { width, height } = pdfDoc.page;
+
+    //         pdfDoc.image(imagePath, 0, 0, { width, height });
+
+    //         // Add a new page if it's not the last image
+    //         if (i < bookImagesLength - 1) {
+    //           pdfDoc.addPage();
+    //         }
+    //       } else {
+    //         console.error(`Image not found: ${imagePath}`);
+    //       }
+    //     }
+
+    //     pdfDoc.end();
+
+    //     return new Promise((resolve, reject) => {
+    //       writeStream.on("finish", () => {
+    //         const filename = path.basename(pdfPath);
+    //         resolve(filename);
+    //       });
+    //       writeStream.on("error", reject);
+    //     });
+    //   })
+    // );
+
     const pdfPaths = await Promise.all(
       books.map(async (book) => {
-        // Make bookHeaderImage the first element of bookImages
-        if (
-          Array.isArray(book.bookImages) &&
-          typeof book.bookHeaderImage === "string"
-        ) {
+        if (Array.isArray(book.bookImages) && typeof book.bookHeaderImage === "string") {
           book.bookImages.unshift(book.bookHeaderImage);
         }
-
-        // Function to ensure directory exists, if not, create it
-        const ensureDirectoryExistence = (directory) => {
-          if (!fs.existsSync(directory)) {
-            fs.mkdirSync(directory, { recursive: true });
-          }
-        };
-
-        // Function to check if a directory exists
-        const doesDirectoryExist = (directory) => {
-          return (
-            fs.existsSync(directory) && fs.lstatSync(directory).isDirectory()
-          );
-        };
-
-        const pdfFolder = path.join("public", "pdf");
-        const imageFolder = path.join("public", "book-images");
-
-        // Ensure the PDF directory exists
-        ensureDirectoryExistence(pdfFolder);
-
-        // Ensure the image directory exists
-        ensureDirectoryExistence(imageFolder);
-
-        // Create a PDF for this book
-        const pdfDoc = new PDFDocument();
-        const pdfName = `${book.slug}.pdf`;
-        // const pdfPath = path.join("public", "pdf", pdfName);
-        const pdfPath = path.join(pdfFolder, pdfName);
-        const writeStream = fs.createWriteStream(pdfPath);
-        pdfDoc.pipe(writeStream);
-
-        const bookImagesLength = book.bookImages.length;
-
-        for (let i = 0; i < bookImagesLength; i++) {
-          const image = book.bookImages[i];
-          // const imagePath = path.join("public", "book-images", image);
-          const imagePath = path.join(imageFolder, image);
-          if (fs.existsSync(imagePath)) {
-            const { width, height } = pdfDoc.page;
-
-            pdfDoc.image(imagePath, 0, 0, { width, height });
-
-            // Add a new page if it's not the last image
-            if (i < bookImagesLength - 1) {
-              pdfDoc.addPage();
-            }
-          } else {
-            console.error(`Image not found: ${imagePath}`);
-          }
-        }
-
-        pdfDoc.end();
-
-        return new Promise((resolve, reject) => {
-          writeStream.on("finish", () => {
-            const filename = path.basename(pdfPath);
-            resolve(filename);
-          });
-          writeStream.on("error", reject);
-        });
+        return await createPDF(book);
       })
     );
+
+
 
     const pdfPathsObject = {};
     books.forEach((book, index) => {
@@ -259,7 +248,6 @@ const getBooksForClient = async (req, res, next) => {
       pdfPath: pdfPathsObject[book.pdfPath],
     }));
 
-    //bookName, bookHeaderImage, slug
 
     return successResponse(res, {
       statusCode: 200,

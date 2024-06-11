@@ -23,8 +23,9 @@ app.use(bodyParser.json({ limit: "100mb" }));
 app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 
 
-app.use("/images", express.static('./public/book-images'))
-app.use("/pdf", express.static('./public/pdf'))
+app.use("/images", express.static('src/middleware/uploads'))
+app.use("/pdf", express.static('src/middleware/uploads'))
+// app.get('/', () => app.use(express.static(__dirname + '../middleware/uploads')));
 
 
 app.use("/api/admin", userRouter);
