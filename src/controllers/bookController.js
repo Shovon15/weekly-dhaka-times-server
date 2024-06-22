@@ -35,9 +35,8 @@ const addBook = async (req, res, next) => {
       });
     }
 
-        // Add bookHeaderImage at index 0 of bookImages array
+    // Add bookHeaderImage at index 0 of bookImages array
     bookImages.unshift(bookHeaderImage);
-
 
     await BookModel.create({
       bookName,
@@ -49,6 +48,50 @@ const addBook = async (req, res, next) => {
       statusCode: 200,
       message: "New Magazin Created Successfully.",
       payload: {},
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+const addImages = async (req, res, next) => {
+  try {
+    const {slug}= req.query
+ 
+    const bookImages = req.files["bookImages"]
+      ? req.files["bookImages"].map((file) => file.filename)
+      : null;
+
+    // console.log( bookImages, "...........");
+
+   
+    // console.log(bookHeaderImage,"bookHeaderImage")
+
+    if (!bookImages && bookImages.length === 0) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: "At least one Magazin image is required",
+      });
+    }
+
+
+    const updatedBook = await BookModel.findOneAndUpdate(
+      { slug },
+      { $push: { bookImages: { $each: bookImages } } },
+      { new: true } // This option returns the updated document
+    );
+
+    if (!updatedBook) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Magazine not found",
+      });
+    }
+
+  
+    return successResponse(res, {
+      statusCode: 200,
+      message: `New Image uploaded on ${slug}`,
+      payload: {updatedBook},
     });
   } catch (error) {
     next(error);
@@ -144,7 +187,6 @@ const getBooksForClient = async (req, res, next) => {
   const skip = (page - 1) * limit;
 
   try {
-
     const result = await BookModel.aggregate([
       {
         $facet: {
@@ -168,6 +210,7 @@ const getBooksForClient = async (req, res, next) => {
         },
       },
     ]);
+
 
     const books = result[0].data;
     const totalCount = result[0].totalCount[0]
@@ -228,14 +271,15 @@ const getBooksForClient = async (req, res, next) => {
 
     const pdfPaths = await Promise.all(
       books.map(async (book) => {
-        if (Array.isArray(book.bookImages) && typeof book.bookHeaderImage === "string") {
-          book.bookImages.unshift(book.bookHeaderImage);
-        }
+        // if (
+        //   Array.isArray(book.bookImages) &&
+        //   typeof book.bookHeaderImage === "string"
+        // ) {
+        //   book.bookImages.unshift(book.bookHeaderImage);
+        // }
         return await createPDF(book);
       })
     );
-
-
 
     const pdfPathsObject = {};
     books.forEach((book, index) => {
@@ -247,7 +291,6 @@ const getBooksForClient = async (req, res, next) => {
       ...book,
       pdfPath: pdfPathsObject[book.pdfPath],
     }));
-
 
     return successResponse(res, {
       statusCode: 200,
@@ -296,6 +339,35 @@ const updateBookPages = async (req, res, next) => {
     return successResponse(res, {
       statusCode: 200,
       message: "magazine update Successfully!!!",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const updateBookTitle = async (req, res, next) => {
+  const { slug } = req.query;
+  const { bookName } = req.body;
+
+  try {
+    const updatedBook = await BookModel.findOneAndUpdate(
+      { slug },
+      { bookName },
+      { new: true } // This option returns the updated document
+    );
+
+    if (!updatedBook) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: "Magazine not found",
+      });
+    }
+
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "magazine title update Successfully!!!",
     });
   } catch (error) {
     next(error);
@@ -485,4 +557,6 @@ module.exports = {
   getBookPagesForClient,
   updateBookPages,
   deleteBook,
+  updateBookTitle,
+  addImages
 };

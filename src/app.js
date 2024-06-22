@@ -23,8 +23,8 @@ app.use(bodyParser.json({ limit: "100mb" }));
 app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 
 
-app.use("/images", express.static('src/middleware/uploads'))
-app.use("/pdf", express.static('src/middleware/uploads'))
+app.use("/images", express.static('middleware/uploads'))
+app.use("/pdf", express.static('middleware/uploads'))
 // app.get('/', () => app.use(express.static(__dirname + '../middleware/uploads')));
 
 
@@ -43,7 +43,7 @@ app.get("/", (req, res) => {
 // 		message: "demo route!!!",
 // 	});
 // });
-connectDB();
+//  connectDB();
 
 // -----------------------------------------------------
 //client error--------------------
