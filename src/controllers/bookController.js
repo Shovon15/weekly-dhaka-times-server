@@ -5,7 +5,7 @@ const path = require("path");
 const { successResponse, errorResponse } = require("./responseController");
 const findWithSlug = require("../services/findWithSlug");
 const removeImages = require("../services/removeImages");
-const createPDF = require("../middleware/makePdf");
+// const createPDF = require("../middleware/makePdf");
 
 const addBook = async (req, res, next) => {
   try {
