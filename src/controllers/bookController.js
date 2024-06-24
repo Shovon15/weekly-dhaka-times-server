@@ -197,7 +197,7 @@ const getBooksForClient = async (req, res, next) => {
               $project: {
                 bookName: 1,
                 bookHeaderImage: 1,
-                bookImages: 1,
+                // bookImages: 1,
                 slug: 1,
               },
             },
@@ -269,34 +269,29 @@ const getBooksForClient = async (req, res, next) => {
     //   })
     // );
 
-    const pdfPaths = await Promise.all(
-      books.map(async (book) => {
-        // if (
-        //   Array.isArray(book.bookImages) &&
-        //   typeof book.bookHeaderImage === "string"
-        // ) {
-        //   book.bookImages.unshift(book.bookHeaderImage);
-        // }
-        return await createPDF(book);
-      })
-    );
+    // const pdfPaths = await Promise.all(
+    //   books.map(async (book) => {
+    //     return await createPDF(book);
+    //   })
+    // );
 
-    const pdfPathsObject = {};
-    books.forEach((book, index) => {
-      pdfPathsObject[book.pdfPath] = pdfPaths[index];
-    });
+    // const pdfPathsObject = {};
+    // books.forEach((book, index) => {
+    //   pdfPathsObject[book.pdfPath] = pdfPaths[index];
+    // });
 
-    // Combine data and pdfPathsObject
-    const dataWithPdf = books.map((book) => ({
-      ...book,
-      pdfPath: pdfPathsObject[book.pdfPath],
-    }));
+    // // Combine data and pdfPathsObject
+    // const dataWithPdf = books.map((book) => ({
+    //   ...book,
+    //   pdfPath: pdfPathsObject[book.pdfPath],
+    // }));
 
     return successResponse(res, {
       statusCode: 200,
       message: "Get Magazin Successfully!!!",
       payload: {
-        data: dataWithPdf,
+        // data: dataWithPdf,
+        data: books,
         // pdfPaths,
         pagination: {
           totalPages: Math.ceil(totalCount / limit),

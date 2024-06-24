@@ -9,7 +9,7 @@ const ensureDirectoryExistence = (directory) => {
   }
 };
 
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join('public/book-images');
 ensureDirectoryExistence(uploadsDir);
 
 // Multer disk storage configuration
@@ -17,8 +17,16 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir); // Set the destination folder for the files
   },
+  // filename: function (req, file, cb) {
+  //   // cb(null, Date.now() + "_" + file.originalname); // Set the filename
+  //   const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9]/g, '_');
+  //   cb(null, Date.now() + "_" + sanitizedFilename); // Set the filename
+  // },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + "_" + file.originalname); // Set the filename
+    const extension = path.extname(file.originalname);
+    const basename = path.basename(file.originalname, extension);
+    const sanitizedBasename = basename.replace(/[^a-zA-Z0-9]/g, '_');
+    cb(null, Date.now() + "_" + sanitizedBasename + extension); // Set the filename with extension
   },
 });
 
